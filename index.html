@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Quiz Betabloqueadores</title>
+
 <style>
 body { font-family: Arial; background:#f4f6f8; text-align:center; }
 .container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; }
@@ -11,6 +12,7 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 .correct { color:green; }
 .incorrect { color:red; }
 </style>
+
 </head>
 <body>
 
@@ -27,10 +29,14 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 <p id="progress"></p>
 <p id="timer">30</p>
 <h3 id="question"></h3>
+
 <input id="answer" placeholder="Tu respuesta">
 <br>
+
 <button id="submitBtn" onclick="submitAnswer()">Responder</button>
+
 <p id="feedback"></p>
+
 <button id="nextBtn" onclick="nextQuestion()" style="display:none;">Siguiente</button>
 </div>
 
@@ -38,8 +44,10 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 <h2>Resultados</h2>
 <p id="score"></p>
 <div id="review"></div>
+
 <h3>Ranking</h3>
 <ul id="ranking"></ul>
+
 <button onclick="restart()">Reintentar</button>
 </div>
 
@@ -47,45 +55,64 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 
 <script>
 
-// NORMALIZAR TEXTO
+// -------- NORMALIZAR --------
 function normalize(str){
-return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+return str.toLowerCase()
+.normalize("NFD")
+.replace(/[\u0300-\u036f]/g, "")
+.trim();
 }
 
-// BANCO
+// -------- BANCO --------
 const questionBank = [
 
-// (mismo banco, no lo cambio para no alargar, ya está completo)
-{q:"Fármaco cardioselectivo β1 lipofílico metabolizado por CYP2D6 que reduce frecuencia cardíaca (efecto cronotrópico negativo) y puede causar depresión y bradicardia", a:["metoprolol"]},
-{q:"Betabloqueador β1 con vida media larga (10-12h) que reduce gasto cardíaco al bloquear receptores β1 y permite dosificación diaria única", a:["bisoprolol"]},
-{q:"Fármaco β1 hidrofílico que no atraviesa SNC, disminuye gasto cardíaco pero es menos efectivo para prevenir ictus", a:["atenolol"]},
-{q:"Betabloqueador β1 de acción ultracorta usado IV en emergencias hipertensivas", a:["esmolol"]},
+{q:"Fármaco cardioselectivo β1 lipofílico metabolizado por CYP2D6 que reduce frecuencia cardíaca y puede causar depresión y bradicardia", a:["metoprolol"]},
+
+{q:"Betabloqueador β1 con vida media larga (10-12h) que permite dosis única diaria", a:["bisoprolol"]},
+
+{q:"Fármaco β1 hidrofílico que no atraviesa SNC y reduce menos el riesgo de ictus", a:["atenolol"]},
+
+{q:"Betabloqueador β1 de acción ultracorta IV usado en emergencias hipertensivas", a:["esmolol"]},
+
 {q:"Fármaco no selectivo que bloquea β1 y β2 y puede causar broncoespasmo", a:["propranolol"]},
-{q:"Betabloqueador no selectivo con uso como antiarrítmico", a:["sotalol"]},
-{q:"Fármaco con actividad simpaticomimética intrínseca", a:["pindolol"]},
 
-{q:"Sustancia cuya liberación disminuye al bloquear β1 renal", a:["renina"]},
-{q:"Efecto inotrópico de los betabloqueadores", a:["negativo"]},
-{q:"Receptor de los cardioselectivos", a:["b1","beta1","β1"]},
-{q:"Neurotransmisor antagonizado", a:["catecolaminas","norepinefrina"]},
+{q:"Betabloqueador no selectivo con uso principal como antiarrítmico", a:["sotalol"]},
 
-{q:"Contraindicación respiratoria absoluta", a:["asma"]},
-{q:"Condición que pueden enmascarar", a:["hipoglucemia"]},
-{q:"Fenómeno por suspensión brusca", a:["rebote","abstinencia"]},
-{q:"Receptor que causa broncoespasmo al bloquearse", a:["b2","beta2","β2"]},
-{q:"Enfermedad cutánea agravada", a:["psoriasis"]},
-{q:"Trastorno AV contraindicado", a:["bloqueo"]},
+{q:"Fármaco con actividad simpaticomimética intrínseca (agonista parcial)", a:["pindolol"]},
 
-{q:"Propiedad de agonismo parcial", a:["isa","actividad simpaticomimetica intrinseca"]},
+{q:"Sustancia producida por el riñón cuya liberación disminuye al bloquear β1", a:["renina"]},
+
+{q:"Tipo de efecto inotrópico producido por betabloqueadores", a:["negativo"]},
+
+{q:"Receptor adrenérgico de los cardioselectivos", a:["b1","beta1","β1"]},
+
+{q:"Neurotransmisor simpático antagonizado", a:["catecolaminas","norepinefrina"]},
+
+{q:"Contraindicación respiratoria absoluta de betabloqueadores", a:["asma"]},
+
+{q:"Condición metabólica que pueden enmascarar", a:["hipoglucemia"]},
+
+{q:"Fenómeno por suspensión abrupta del tratamiento", a:["rebote","abstinencia"]},
+
+{q:"Receptor cuyo bloqueo causa broncoespasmo", a:["b2","beta2","β2"]},
+
+{q:"Enfermedad cutánea autoinmune agravada", a:["psoriasis"]},
+
+{q:"Trastorno de conducción AV contraindicado", a:["bloqueo"]},
+
+{q:"Propiedad de agonismo parcial en betabloqueadores", a:["isa","actividad simpaticomimetica intrinseca"]},
+
 {q:"Enzima que metaboliza metoprolol", a:["cyp2d6"]},
-{q:"Propiedad para cruzar SNC", a:["liposolubilidad","lipofilia"]},
 
-{q:"Tipo de angina de elección", a:["esfuerzo","exertional"]},
-{q:"Beneficio post IAM", a:["supervivencia"]}
+{q:"Propiedad que permite atravesar la barrera hematoencefálica", a:["liposolubilidad","lipofilia"]},
+
+{q:"Tipo de angina donde son primera línea", a:["esfuerzo","exertional"]},
+
+{q:"Principal beneficio tras infarto de miocardio", a:["supervivencia"]}
 
 ];
 
-// VARIABLES
+// -------- VARIABLES --------
 let questions = [];
 let current = 0;
 let score = 0;
@@ -95,12 +122,12 @@ let answered = false;
 let userAnswers = [];
 let name = "";
 
-// INICIO
+// -------- INICIO --------
 function startQuiz(){
 name = document.getElementById("name").value;
 if(!name) return alert("Ingresa nombre");
 
-questions = [...questionBank].sort(()=>0.5-Math.random()).slice(0,10);
+questions = [...questionBank].sort(()=>Math.random()-0.5).slice(0,10);
 
 document.getElementById("start").style.display="none";
 document.getElementById("quiz").style.display="block";
@@ -108,7 +135,7 @@ document.getElementById("quiz").style.display="block";
 loadQuestion();
 }
 
-// CARGAR
+// -------- CARGAR --------
 function loadQuestion(){
 answered = false;
 timeLeft = 30;
@@ -120,82 +147,91 @@ document.getElementById("submitBtn").disabled=false;
 document.getElementById("feedback").innerHTML="";
 document.getElementById("nextBtn").style.display="none";
 
-document.getElementById("progress").innerText = 
-"Pregunta " + (current+1) + " / 10";
+document.getElementById("progress").innerText =
+`Pregunta ${current+1} / 10`;
 
 document.getElementById("question").innerText = questions[current].q;
 
+document.getElementById("timer").innerText = timeLeft;
+
 timer = setInterval(()=>{
 timeLeft--;
-document.getElementById("timer").innerText=timeLeft;
+document.getElementById("timer").innerText = timeLeft;
 
-if(timeLeft<=0){
+if(timeLeft <= 0){
 clearInterval(timer);
-submitAnswer();
+submitAnswer(true);
 }
 },1000);
 }
 
-// RESPUESTA
-function submitAnswer(){
+// -------- RESPUESTA --------
+function submitAnswer(timeout=false){
 
-if(answered) return; // 🔒 evita doble respuesta
+if(answered) return; // 🔒 BLOQUEO TOTAL
 answered = true;
 
 clearInterval(timer);
 
+// bloquear input
+document.getElementById("answer").disabled = true;
+document.getElementById("submitBtn").disabled = true;
+
 let ans = normalize(document.getElementById("answer").value);
 let correctList = questions[current].a.map(x=>normalize(x));
 
-let isCorrect = correctList.some(x=>ans.includes(x));
+let isCorrect = !timeout && correctList.some(x=>ans.includes(x));
 
-let points = Math.max(0,50-(30-timeLeft));
-if(!isCorrect) points=0;
-
+let points = isCorrect ? Math.max(0,50-(30-timeLeft)) : 0;
 score += points;
 
-// BLOQUEAR INPUT
-document.getElementById("answer").disabled=true;
-document.getElementById("submitBtn").disabled=true;
+let correctText = questions[current].a[0];
 
-// FEEDBACK COMPLETO
-if(isCorrect){
+// 🔥 FEEDBACK COMPLETO
+if(timeout){
+document.getElementById("feedback").innerHTML =
+`❌ Tiempo agotado (0 pts)<br>Respuesta correcta: <b>${correctText}</b>`;
+}
+else if(isCorrect){
 document.getElementById("feedback").innerHTML =
 `<span class="correct">✅ Correcto (+${points} pts)</span>`;
-}else{
+}
+else{
 document.getElementById("feedback").innerHTML =
-`<span class="incorrect">❌ Incorrecto (0 pts)<br>Respuesta correcta: ${correctList[0]}</span>`;
+`<span class="incorrect">❌ Incorrecto (0 pts)<br>Respuesta correcta: <b>${correctText}</b></span>`;
 }
 
 userAnswers.push({
 q:questions[current].q,
-user:ans,
-correct:correctList[0]
+user:ans || "(sin respuesta)",
+correct:correctText
 });
 
 document.getElementById("nextBtn").style.display="inline";
 }
 
-// SIGUIENTE
+// -------- SIGUIENTE --------
 function nextQuestion(){
 current++;
-if(current>=10) endQuiz();
+if(current >= 10) endQuiz();
 else loadQuestion();
 }
 
-// FINAL
+// -------- FINAL --------
 function endQuiz(){
 document.getElementById("quiz").style.display="none";
 document.getElementById("result").style.display="block";
 
 document.getElementById("score").innerText =
-name + " - Puntaje: " + score;
+`${name} - Puntaje: ${score}`;
 
 let reviewHTML="";
 userAnswers.forEach(r=>{
-reviewHTML += `<p><b>${r.q}</b><br>Tu respuesta: ${r.user}<br>Correcta: ${r.correct}</p>`;
+reviewHTML += `<p><b>${r.q}</b><br>
+Tu respuesta: ${r.user}<br>
+Correcta: ${r.correct}</p>`;
 });
-document.getElementById("review").innerHTML=reviewHTML;
+document.getElementById("review").innerHTML = reviewHTML;
 
 // ranking
 let ranking = JSON.parse(localStorage.getItem("ranking")||"[]");
@@ -208,17 +244,20 @@ let rankHTML="";
 ranking.forEach(r=>{
 rankHTML += `<li>${r.name} - ${r.score}</li>`;
 });
-document.getElementById("ranking").innerHTML=rankHTML;
+document.getElementById("ranking").innerHTML = rankHTML;
 }
 
-// REINICIO
+// -------- REINICIAR --------
 function restart(){
 current=0;
 score=0;
 userAnswers=[];
+
 document.getElementById("result").style.display="none";
 document.getElementById("quiz").style.display="block";
-questions = [...questionBank].sort(()=>0.5-Math.random()).slice(0,10);
+
+questions = [...questionBank].sort(()=>Math.random()-0.5).slice(0,10);
+
 loadQuestion();
 }
 
