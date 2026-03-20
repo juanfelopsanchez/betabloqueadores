@@ -22,7 +22,7 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 <div id="start">
 <input id="name" placeholder="Tu nombre">
 <br><br>
-<button onclick="startQuiz()">Iniciar</button>
+<button id="startBtn">Iniciar</button>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -48,12 +48,14 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 <h3>Ranking</h3>
 <ul id="ranking"></ul>
 
-<button onclick="restart()">Reintentar</button>
+<button id="restartBtn">Reintentar</button>
 </div>
 
 </div>
 
 <script>
+
+document.addEventListener("DOMContentLoaded", () => {
 
 // -------- NORMALIZAR --------
 function normalize(str){
@@ -99,19 +101,27 @@ let answered = false;
 let userAnswers = [];
 let name = "";
 
-// -------- EVENTOS --------
-document.getElementById("submitBtn").addEventListener("click", ()=>submitAnswer(false));
-document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+// -------- ELEMENTOS --------
+const startBtn = document.getElementById("startBtn");
+const submitBtn = document.getElementById("submitBtn");
+const nextBtn = document.getElementById("nextBtn");
+const restartBtn = document.getElementById("restartBtn");
+const answerInput = document.getElementById("answer");
 
-// BLOQUEAR ENTER DOBLE RESPUESTA
-document.getElementById("answer").addEventListener("keydown", function(e){
+// -------- EVENTOS --------
+startBtn.addEventListener("click", startQuiz);
+submitBtn.addEventListener("click", () => submitAnswer(false));
+nextBtn.addEventListener("click", nextQuestion);
+restartBtn.addEventListener("click", restart);
+
+answerInput.addEventListener("keydown", (e)=>{
 if(e.key === "Enter"){
 e.preventDefault();
 submitAnswer(false);
 }
 });
 
-// -------- INICIO --------
+// -------- FUNCIONES --------
 function startQuiz(){
 name = document.getElementById("name").value;
 if(!name) return alert("Ingresa nombre");
@@ -124,17 +134,16 @@ document.getElementById("quiz").style.display="block";
 loadQuestion();
 }
 
-// -------- CARGAR --------
 function loadQuestion(){
 answered = false;
 timeLeft = 30;
 
-document.getElementById("answer").value="";
-document.getElementById("answer").disabled=false;
-document.getElementById("submitBtn").disabled=false;
+answerInput.value="";
+answerInput.disabled=false;
+submitBtn.disabled=false;
 
 document.getElementById("feedback").innerHTML="";
-document.getElementById("nextBtn").style.display="none";
+nextBtn.style.display="none";
 
 document.getElementById("progress").innerText =
 `Pregunta ${current+1} / 10`;
@@ -154,36 +163,34 @@ submitAnswer(true);
 },1000);
 }
 
-// -------- RESPUESTA (FIX REAL) --------
 function submitAnswer(timeout){
 
-if(answered) return; // 🔒 BLOQUEO REAL
+if(answered) return;
 answered = true;
 
 clearInterval(timer);
 
-// bloquear UI TOTAL
-document.getElementById("answer").disabled = true;
-document.getElementById("submitBtn").disabled = true;
+// bloquear UI
+answerInput.disabled = true;
+submitBtn.disabled = true;
 
-let ans = normalize(document.getElementById("answer").value);
+let ans = normalize(answerInput.value);
 let correctList = questions[current].a.map(x=>normalize(x));
 let correctText = questions[current].a[0];
 
 let isCorrect = !timeout && correctList.some(x=>ans.includes(x));
 
-// cálculo
 let points = isCorrect ? Math.max(0,50-(30-timeLeft)) : 0;
 score += points;
 
-// 🔥 FEEDBACK GARANTIZADO
+// FEEDBACK CORRECTO SIEMPRE
 let feedbackHTML = "";
 
 if(timeout){
 feedbackHTML = `❌ Tiempo agotado (0 pts)<br><b>Respuesta correcta:</b> ${correctText}`;
 }
 else if(isCorrect){
-feedbackHTML = `✅ Correcto <b>(+${points} pts)</b>`;
+feedbackHTML = `✅ Correcto (+${points} pts)`;
 }
 else{
 feedbackHTML = `❌ Incorrecto (0 pts)<br><b>Respuesta correcta:</b> ${correctText}`;
@@ -191,24 +198,21 @@ feedbackHTML = `❌ Incorrecto (0 pts)<br><b>Respuesta correcta:</b> ${correctTe
 
 document.getElementById("feedback").innerHTML = feedbackHTML;
 
-// guardar
 userAnswers.push({
 q:questions[current].q,
 user:ans || "(sin respuesta)",
 correct:correctText
 });
 
-document.getElementById("nextBtn").style.display="inline";
+nextBtn.style.display="inline";
 }
 
-// -------- SIGUIENTE --------
 function nextQuestion(){
 current++;
 if(current >= 10) endQuiz();
 else loadQuestion();
 }
 
-// -------- FINAL --------
 function endQuiz(){
 document.getElementById("quiz").style.display="none";
 document.getElementById("result").style.display="block";
@@ -238,7 +242,6 @@ rankHTML += `<li>${r.name} - ${r.score}</li>`;
 document.getElementById("ranking").innerHTML = rankHTML;
 }
 
-// -------- RESTART --------
 function restart(){
 current=0;
 score=0;
@@ -251,6 +254,8 @@ questions = [...questionBank].sort(()=>Math.random()-0.5).slice(0,10);
 
 loadQuestion();
 }
+
+});
 
 </script>
 
