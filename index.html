@@ -33,11 +33,11 @@ button { padding:10px 15px; margin-top:10px; cursor:pointer; }
 <input id="answer" placeholder="Tu respuesta">
 <br>
 
-<button id="submitBtn" onclick="submitAnswer()">Responder</button>
+<button id="submitBtn">Responder</button>
 
 <p id="feedback"></p>
 
-<button id="nextBtn" onclick="nextQuestion()" style="display:none;">Siguiente</button>
+<button id="nextBtn" style="display:none;">Siguiente</button>
 </div>
 
 <div id="result" style="display:none;">
@@ -65,51 +65,28 @@ return str.toLowerCase()
 
 // -------- BANCO --------
 const questionBank = [
-
-{q:"Fármaco cardioselectivo β1 lipofílico metabolizado por CYP2D6 que reduce frecuencia cardíaca y puede causar depresión y bradicardia", a:["metoprolol"]},
-
-{q:"Betabloqueador β1 con vida media larga (10-12h) que permite dosis única diaria", a:["bisoprolol"]},
-
-{q:"Fármaco β1 hidrofílico que no atraviesa SNC y reduce menos el riesgo de ictus", a:["atenolol"]},
-
-{q:"Betabloqueador β1 de acción ultracorta IV usado en emergencias hipertensivas", a:["esmolol"]},
-
-{q:"Fármaco no selectivo que bloquea β1 y β2 y puede causar broncoespasmo", a:["propranolol"]},
-
-{q:"Betabloqueador no selectivo con uso principal como antiarrítmico", a:["sotalol"]},
-
-{q:"Fármaco con actividad simpaticomimética intrínseca (agonista parcial)", a:["pindolol"]},
-
-{q:"Sustancia producida por el riñón cuya liberación disminuye al bloquear β1", a:["renina"]},
-
-{q:"Tipo de efecto inotrópico producido por betabloqueadores", a:["negativo"]},
-
-{q:"Receptor adrenérgico de los cardioselectivos", a:["b1","beta1","β1"]},
-
-{q:"Neurotransmisor simpático antagonizado", a:["catecolaminas","norepinefrina"]},
-
-{q:"Contraindicación respiratoria absoluta de betabloqueadores", a:["asma"]},
-
-{q:"Condición metabólica que pueden enmascarar", a:["hipoglucemia"]},
-
-{q:"Fenómeno por suspensión abrupta del tratamiento", a:["rebote","abstinencia"]},
-
-{q:"Receptor cuyo bloqueo causa broncoespasmo", a:["b2","beta2","β2"]},
-
-{q:"Enfermedad cutánea autoinmune agravada", a:["psoriasis"]},
-
-{q:"Trastorno de conducción AV contraindicado", a:["bloqueo"]},
-
-{q:"Propiedad de agonismo parcial en betabloqueadores", a:["isa","actividad simpaticomimetica intrinseca"]},
-
-{q:"Enzima que metaboliza metoprolol", a:["cyp2d6"]},
-
-{q:"Propiedad que permite atravesar la barrera hematoencefálica", a:["liposolubilidad","lipofilia"]},
-
-{q:"Tipo de angina donde son primera línea", a:["esfuerzo","exertional"]},
-
-{q:"Principal beneficio tras infarto de miocardio", a:["supervivencia"]}
-
+{q:"Fármaco cardioselectivo β1 lipofílico metabolizado por CYP2D6", a:["metoprolol"]},
+{q:"Betabloqueador β1 vida media larga", a:["bisoprolol"]},
+{q:"Fármaco β1 hidrofílico", a:["atenolol"]},
+{q:"Betabloqueador IV ultracorto", a:["esmolol"]},
+{q:"Bloqueador β1 y β2 con broncoespasmo", a:["propranolol"]},
+{q:"Betabloqueador antiarrítmico", a:["sotalol"]},
+{q:"Fármaco con ISA", a:["pindolol"]},
+{q:"Sustancia renal disminuida", a:["renina"]},
+{q:"Efecto inotrópico", a:["negativo"]},
+{q:"Receptor cardioselectivo", a:["b1","beta1","β1"]},
+{q:"Neurotransmisor antagonizado", a:["catecolaminas","norepinefrina"]},
+{q:"Contraindicación respiratoria", a:["asma"]},
+{q:"Condición enmascarada", a:["hipoglucemia"]},
+{q:"Fenómeno por suspensión", a:["rebote","abstinencia"]},
+{q:"Receptor broncoespasmo", a:["b2","beta2","β2"]},
+{q:"Enfermedad cutánea", a:["psoriasis"]},
+{q:"Trastorno AV", a:["bloqueo"]},
+{q:"Propiedad ISA", a:["isa","actividad simpaticomimetica intrinseca"]},
+{q:"Enzima metoprolol", a:["cyp2d6"]},
+{q:"Propiedad SNC", a:["liposolubilidad","lipofilia"]},
+{q:"Tipo angina", a:["esfuerzo","exertional"]},
+{q:"Beneficio post IAM", a:["supervivencia"]}
 ];
 
 // -------- VARIABLES --------
@@ -121,6 +98,18 @@ let timeLeft = 30;
 let answered = false;
 let userAnswers = [];
 let name = "";
+
+// -------- EVENTOS --------
+document.getElementById("submitBtn").addEventListener("click", ()=>submitAnswer(false));
+document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+
+// BLOQUEAR ENTER DOBLE RESPUESTA
+document.getElementById("answer").addEventListener("keydown", function(e){
+if(e.key === "Enter"){
+e.preventDefault();
+submitAnswer(false);
+}
+});
 
 // -------- INICIO --------
 function startQuiz(){
@@ -165,42 +154,44 @@ submitAnswer(true);
 },1000);
 }
 
-// -------- RESPUESTA --------
-function submitAnswer(timeout=false){
+// -------- RESPUESTA (FIX REAL) --------
+function submitAnswer(timeout){
 
-if(answered) return; // 🔒 BLOQUEO TOTAL
+if(answered) return; // 🔒 BLOQUEO REAL
 answered = true;
 
 clearInterval(timer);
 
-// bloquear input
+// bloquear UI TOTAL
 document.getElementById("answer").disabled = true;
 document.getElementById("submitBtn").disabled = true;
 
 let ans = normalize(document.getElementById("answer").value);
 let correctList = questions[current].a.map(x=>normalize(x));
+let correctText = questions[current].a[0];
 
 let isCorrect = !timeout && correctList.some(x=>ans.includes(x));
 
+// cálculo
 let points = isCorrect ? Math.max(0,50-(30-timeLeft)) : 0;
 score += points;
 
-let correctText = questions[current].a[0];
+// 🔥 FEEDBACK GARANTIZADO
+let feedbackHTML = "";
 
-// 🔥 FEEDBACK COMPLETO
 if(timeout){
-document.getElementById("feedback").innerHTML =
-`❌ Tiempo agotado (0 pts)<br>Respuesta correcta: <b>${correctText}</b>`;
+feedbackHTML = `❌ Tiempo agotado (0 pts)<br><b>Respuesta correcta:</b> ${correctText}`;
 }
 else if(isCorrect){
-document.getElementById("feedback").innerHTML =
-`<span class="correct">✅ Correcto (+${points} pts)</span>`;
+feedbackHTML = `✅ Correcto <b>(+${points} pts)</b>`;
 }
 else{
-document.getElementById("feedback").innerHTML =
-`<span class="incorrect">❌ Incorrecto (0 pts)<br>Respuesta correcta: <b>${correctText}</b></span>`;
+feedbackHTML = `❌ Incorrecto (0 pts)<br><b>Respuesta correcta:</b> ${correctText}`;
 }
 
+document.getElementById("feedback").innerHTML = feedbackHTML;
+
+// guardar
 userAnswers.push({
 q:questions[current].q,
 user:ans || "(sin respuesta)",
@@ -247,7 +238,7 @@ rankHTML += `<li>${r.name} - ${r.score}</li>`;
 document.getElementById("ranking").innerHTML = rankHTML;
 }
 
-// -------- REINICIAR --------
+// -------- RESTART --------
 function restart(){
 current=0;
 score=0;
