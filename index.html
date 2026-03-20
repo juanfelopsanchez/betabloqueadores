@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Betabloqueadores</title>
+<style>
+body { font-family: Arial; background:#f4f6f8; text-align:center; }
+.container { max-width:700px; margin:auto; background:white; padding:20px; border-radius:10px; }
+button { padding:10px 15px; margin-top:10px; cursor:pointer; }
+#timer { font-size:20px; font-weight:bold; }
+.correct { color:green; }
+.incorrect { color:red; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Quiz Betabloqueadores</h2>
+
+<div id="start">
+<input id="name" placeholder="Tu nombre">
+<br><br>
+<button onclick="startQuiz()">Iniciar</button>
+</div>
+
+<div id="quiz" style="display:none;">
+<p id="timer">30</p>
+<h3 id="question"></h3>
+<input id="answer" placeholder="Tu respuesta">
+<br>
+<button onclick="submitAnswer()">Responder</button>
+<p id="feedback"></p>
+<button id="nextBtn" onclick="nextQuestion()" style="display:none;">Siguiente</button>
+</div>
+
+<div id="result" style="display:none;">
+<h2>Resultados</h2>
+<p id="score"></p>
+<div id="review"></div>
+<h3>Ranking</h3>
+<ul id="ranking"></ul>
+<button onclick="restart()">Reintentar</button>
+</div>
+
+</div>
+
+<script>
+
+// --- UTIL ---
+function normalize(str){
+return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// --- BANCO DE PREGUNTAS (AMPLIO + INTEGRADO) ---
+const questionBank = [
+
+{q:"Fármaco cardioselectivo β1 lipofílico metabolizado por CYP2D6 que reduce frecuencia cardíaca (efecto cronotrópico negativo) y puede causar depresión y bradicardia", a:["metoprolol"]},
+
+{q:"Betabloqueador β1 con vida media larga (10-12h) que reduce gasto cardíaco al bloquear receptores β1 y permite dosificación diaria única", a:["bisoprolol"]},
+
+{q:"Fármaco β1 hidrofílico que no atraviesa SNC, disminuye gasto cardíaco pero es menos efectivo para prevenir ictus", a:["atenolol"]},
+
+{q:"Betabloqueador β1 de acción ultracorta usado IV en emergencias hipertensivas que reduce rápidamente la frecuencia cardíaca", a:["esmolol"]},
+
+{q:"Fármaco no selectivo que bloquea β1 y β2, reduce gasto cardíaco pero puede causar broncoespasmo y vasoconstricción periférica", a:["propranolol"]},
+
+{q:"Betabloqueador no selectivo con uso principal como antiarrítmico que bloquea receptores β y puede inducir arritmias específicas", a:["sotalol"]},
+
+{q:"Fármaco con actividad simpaticomimética intrínseca (agonista parcial) que puede aumentar la frecuencia cardíaca durante el sueño", a:["pindolol"]},
+
+// FISIO + CLÍNICA
+{q:"Sustancia producida por el riñón cuya liberación disminuye al bloquear β1 en células yuxtaglomerulares", a:["renina"]},
+
+{q:"Tipo de efecto inotrópico producido por betabloqueadores en el corazón", a:["negativo"]},
+
+{q:"Subtipo de receptor al que se dirigen los betabloqueadores cardioselectivos", a:["b1","beta1","β1"]},
+
+{q:"Neurotransmisor simpático antagonizado competitivamente por estos fármacos", a:["catecolaminas","norepinefrina"]},
+
+// EFECTOS ADVERSOS
+{q:"Contraindicación respiratoria absoluta de betabloqueadores no selectivos por bloqueo β2", a:["asma"]},
+
+{q:"Condición metabólica que pueden enmascarar en pacientes diabéticos", a:["hipoglucemia"]},
+
+{q:"Fenómeno peligroso al suspender abruptamente betabloqueadores por upregulation de receptores", a:["rebote","abstinencia"]},
+
+{q:"Receptor cuyo bloqueo causa broncoespasmo y vasoconstricción periférica", a:["b2","beta2","β2"]},
+
+{q:"Enfermedad autoinmune cutánea que pueden agravar", a:["psoriasis"]},
+
+{q:"Trastorno de conducción AV contraindicado", a:["bloqueo"]},
+
+// PROPIEDADES
+{q:"Propiedad de agonismo parcial presente en algunos betabloqueadores", a:["isa","actividad simpaticomimetica intrinseca"]},
+
+{q:"Enzima del citocromo P450 que metaboliza metoprolol", a:["cyp2d6"]},
+
+{q:"Propiedad que permite atravesar la barrera hematoencefálica", a:["liposolubilidad","lipofilia"]},
+
+// APLICACIONES
+{q:"Tipo de angina donde los betabloqueadores son primera línea por reducir consumo de oxígeno", a:["esfuerzo","exertional"]},
+
+{q:"Principal beneficio tras infarto de miocardio al usar betabloqueadores", a:["supervivencia"]},
+
+// INTEGRADAS AVANZADAS
+{q:"Fármaco lipofílico no selectivo que reduce síntomas de hipertiroidismo al bloquear β y disminuir efectos de catecolaminas", a:["propranolol"]},
+
+{q:"Betabloqueador β1 que reduce la liberación de renina y disminuye presión arterial actuando sobre sistema RAAS", a:["metoprolol","bisoprolol","atenolol"]},
+
+{q:"Fármaco con ISA que produce menor bradicardia en reposo pero peor pronóstico cardiovascular", a:["pindolol"]},
+
+{q:"Betabloqueador que por bloquear β2 puede causar empeoramiento en pacientes con EPOC o asma", a:["propranolol","sotalol"]},
+
+{q:"Fármaco IV de acción ultracorta ideal para control rápido de frecuencia en arritmias agudas", a:["esmolol"]},
+
+{q:"Betabloqueador que puede causar frialdad en extremidades por disminución del flujo periférico", a:["atenolol"]}
+
+];
+
+// --- VARIABLES ---
+let questions = [];
+let current = 0;
+let score = 0;
+let timer;
+let timeLeft = 30;
+let userAnswers = [];
+let name = "";
+
+// --- INICIO ---
+function startQuiz(){
+name = document.getElementById("name").value;
+if(!name) return alert("Ingresa nombre");
+
+questions = [...questionBank].sort(()=>0.5-Math.random()).slice(0,10);
+
+document.getElementById("start").style.display="none";
+document.getElementById("quiz").style.display="block";
+
+loadQuestion();
+}
+
+// --- CARGAR PREGUNTA ---
+function loadQuestion(){
+timeLeft = 30;
+document.getElementById("answer").value="";
+document.getElementById("feedback").innerHTML="";
+document.getElementById("nextBtn").style.display="none";
+
+document.getElementById("question").innerText = questions[current].q;
+
+timer = setInterval(()=>{
+timeLeft--;
+document.getElementById("timer").innerText=timeLeft;
+if(timeLeft<=0){
+clearInterval(timer);
+submitAnswer();
+}
+},1000);
+}
+
+// --- RESPONDER ---
+function submitAnswer(){
+clearInterval(timer);
+
+let ans = normalize(document.getElementById("answer").value);
+let correctList = questions[current].a.map(x=>normalize(x));
+
+let correct = correctList.some(x=>ans.includes(x));
+
+let points = Math.max(0,50-(30-timeLeft));
+if(!correct) points=0;
+
+score += points;
+
+document.getElementById("feedback").innerHTML =
+correct ? "✅ Correcto" : "❌ Incorrecto";
+
+userAnswers.push({
+q:questions[current].q,
+user:ans,
+correct:correctList[0]
+});
+
+document.getElementById("nextBtn").style.display="inline";
+}
+
+// --- SIGUIENTE ---
+function nextQuestion(){
+current++;
+if(current>=10) endQuiz();
+else loadQuestion();
+}
+
+// --- FINAL ---
+function endQuiz(){
+document.getElementById("quiz").style.display="none";
+document.getElementById("result").style.display="block";
+
+document.getElementById("score").innerText =
+name + " - Puntaje: " + score;
+
+let reviewHTML="";
+userAnswers.forEach(r=>{
+reviewHTML += `<p><b>${r.q}</b><br>Tu respuesta: ${r.user}<br>Correcta: ${r.correct}</p>`;
+});
+document.getElementById("review").innerHTML=reviewHTML;
+
+// ranking
+let ranking = JSON.parse(localStorage.getItem("ranking")||"[]");
+ranking.push({name,score});
+ranking.sort((a,b)=>b.score-a.score);
+ranking = ranking.slice(0,5);
+localStorage.setItem("ranking",JSON.stringify(ranking));
+
+let rankHTML="";
+ranking.forEach(r=>{
+rankHTML += `<li>${r.name} - ${r.score}</li>`;
+});
+document.getElementById("ranking").innerHTML=rankHTML;
+}
+
+// --- RESTART ---
+function restart(){
+current=0;
+score=0;
+userAnswers=[];
+document.getElementById("result").style.display="none";
+document.getElementById("quiz").style.display="block";
+questions = [...questionBank].sort(()=>0.5-Math.random()).slice(0,10);
+loadQuestion();
+}
+
+</script>
+
+</body>
+</html>
